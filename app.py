@@ -23,9 +23,14 @@ def save_sms():
         cursor = connection.cursor()
 
         # Create an SQL query to insert the data
-        sql_query = f"INSERT INTO {table_name} (data_column_name,Alarme) VALUES (%s,1)"
-        cursor.execute(sql_query, (data,))
+        columns = ', '.join(data.keys())
+        placeholders = ', '.join(['%s'] * len(data))
+        values = tuple(data.values())
+        sql_query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+
+        cursor.execute(sql_query, values)
         connection.commit()
+
 
         return jsonify({'message': 'Data saved successfully'}), 200
     except Exception as e:
