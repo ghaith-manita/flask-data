@@ -1,68 +1,38 @@
 from flask import Flask, request, jsonify
-import mysql.connector
+import pymysql
 
 app = Flask(__name__)
 
-# MySQL database configuration
+# Configure your MySQL connection
 db_config = {
-    "host": "sql7.freemysqlhosting.net",
-    "user": "sql7747863",
-    "password": "ZMrMP55Feu",
-    "database": "sql7747863",
+    'host': 'sql7.freemysqlhosting.net',
+    'user': 'sql7747863',
+    'password': 'ZMrMP55Feu',
+    'database': 'sql7747863'
 }
 
-# Database helper function
-def execute_query(query, values=None):
+@app.route('/save_sms', methods=['POST'])
+def save_sms():
     try:
-        connection = mysql.connector.connect(**db_config)
-        cursor = connection.cursor(dictionary=True)
-        if values:
-            cursor.execute(query, values)
-        else:
-            cursor.execute(query)
-        if query.strip().upper().startswith("SELECT"):
-            result = cursor.fetchall()
-        else:
-            connection.commit()
-            result = {"status": "success", "affected_rows": cursor.rowcount}
-        cursor.close()
-        connection.close()
-        return result
-    except mysql.connector.Error as err:
-        return {"status": "error", "message": str(err)}
+        # Extract data from the request
+        table_name = request.json.get('tableName')
+        data = request.json.get('data')
 
-# Test endpoint
-@app.route("/api/test", methods=["GET"])
-def test_connection():
-    result = execute_query("SELECT 1")
-    return jsonify(result)
+        # Connect to the MySQL database
+        connection = pymysql.connect(**db_config)
+        cursor = connection.cursor()
 
-# Insert data endpoint
-@app.route("/api/insert", methods=["POST"])
-def insert_data():
-    data = request.json
-    table_name = data.get("table_name")
-    values = data.get("values")
-    if not table_name or not values:
-        return jsonify({"status": "error", "message": "Invalid input"}), 400
+        # Create an SQL query to insert the data
+        sql_query = f"INSERT INTO {table_name} (data_column_name,Alarme) VALUES (%s,1)"
+        cursor.execute(sql_query, (data,))
+        connection.commit()
 
-    # Dynamically construct the query
-    columns = ", ".join(values.keys())
-    placeholders = ", ".join(["%s"] * len(values))
-    query = f"INSERT INTO {table_name} ({columns}, Alarms) VALUES ({placeholders}, 1)"
-    result = execute_query(query, tuple(values.values()))
-    return jsonify(result)
+        return jsonify({'message': 'Data saved successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if connection:
+            connection.close()
 
-# Fetch data endpoint
-@app.route("/api/fetch", methods=["GET"])
-def fetch_data():
-    table_name = request.args.get("table_name")
-    if not table_name:
-        return jsonify({"status": "error", "message": "Table name is required"}), 400
-
-    query = f"SELECT * FROM {table_name}"
-    result = execute_query(query)
-    return jsonify(result)
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
