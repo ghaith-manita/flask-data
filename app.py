@@ -49,7 +49,7 @@ def insert_data():
     # Dynamically construct the query
     columns = ", ".join(values.keys())
     placeholders = ", ".join(["%s"] * len(values))
-    query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+    query = f"INSERT INTO {table_name} ({columns}, Alarms) VALUES ({placeholders}, 1)"
     result = execute_query(query, tuple(values.values()))
     return jsonify(result)
 
